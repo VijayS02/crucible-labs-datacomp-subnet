@@ -7,14 +7,14 @@ class Validator:
 
 
     def forward_pass(self, model, tokenizer, data):
-        outputs = []
-        for item in data:
-            prompt = item['prompt']
-            inputs = tokenizer.encode(prompt, data)
-            output = model.predict(inputs)
-            decoded = tokenizer.decode(output[0], skip_special_tokens=True)
-            outputs.append(decoded)
-        return outputs
+        tokenized_outputs = []
+        inputs = [tokenizer.encode_batch(item['prompt']) for item in data]
+        for tokenized_input in inputs: 
+            output = model.predict(tokenized_input)
+            tokenized_outputs.append(output[0])
+        
+        decoded_outputs = tokenizer.decode_batch(tokenized_outputs)
+        return decoded_outputs
     
     def prompt_combine(self, prompt):
         return f"{prompt['task']}\nReasoning: {prompt['chain_of_thought']}\nAnswer:  {prompt['final_answer']}"  
@@ -22,7 +22,7 @@ class Validator:
     
     def fine_tune(self, model, tokenizer, data):
         texts = [item['chain_of_thought'] + "\n\nAnswer" for item in data]
-        inputs = tokenizer.encode(texts)
+        inputs = tokenizer.encode_batch(texts)
         model.fine_tune(inputs)
 
 
