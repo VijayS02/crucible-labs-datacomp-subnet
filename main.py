@@ -1,12 +1,21 @@
-import sys 
+import sys
+from typing import List, TypedDict
+
+from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleTokenizer, AbstractCrucibleModel 
+
+class PromptData(TypedDict):
+    task: str
+    chain_of_thought: str 
+    final_answer: str
+
 
 class Validator:
-    def __init__(self, pre_validators, scorers):
+    def __init__(self, pre_validators: List[AbstractPreValidator], scorers: List[AbstractScorer]):
         self.pre_validators = pre_validators
         self.scorers = scorers
 
 
-    def forward_pass(self, model, tokenizer, data):
+    def forward_pass(self, model, tokenizer, data: List[PromptData]):
         tokenized_outputs = []
         inputs = [tokenizer.encode_batch(item['prompt']) for item in data]
         for tokenized_input in inputs: 
@@ -16,24 +25,24 @@ class Validator:
         decoded_outputs = tokenizer.decode_batch(tokenized_outputs)
         return decoded_outputs
     
-    def prompt_combine(self, prompt):
+    def prompt_combine(self, prompt: PromptData):
         return f"{prompt['task']}\nReasoning: {prompt['chain_of_thought']}\nAnswer:  {prompt['final_answer']}"  
 
     
-    def fine_tune(self, model, tokenizer, data):
+    def fine_tune(self, model: AbstractCrucibleModel, tokenizer: AbstractCrucibleTokenizer, data: List[PromptData]):
         texts = [item['chain_of_thought'] + "\n\nAnswer" for item in data]
         inputs = tokenizer.encode_batch(texts)
         model.fine_tune(inputs)
 
 
-    def pre_validate(self, data):
+    def pre_validate(self, data: List[PromptData]):
         for pre_validator in self.pre_validators:
             if not pre_validator.validate_data(data):
                 print(f"Data is not valid for {pre_validator.__class__.__name__}", file=sys.stderr)
                 return False
         return True
 
-    def validate_and_score(self, model, tokenizer, data, tune=False):
+    def validate_and_score(self, model: AbstractCrucibleModel, tokenizer: AbstractCrucibleTokenizer, data: List[PromptData], tune=False):
         if tune:
             self.fine_tune(model, tokenizer, data)
 
@@ -55,7 +64,7 @@ class Validator:
 
         return sum(similarities) / len(similarities) 
     
-    def test(self, model, tokenizer, data):
+    def test(self, model: AbstractCrucibleModel, tokenizer: AbstractCrucibleTokenizer, data: List[PromptData]):
         if not self.pre_validate(data):
             raise ValueError("Data is not valid")
 
