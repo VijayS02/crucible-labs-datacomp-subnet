@@ -1,8 +1,15 @@
 from abc import abstractmethod
+from typing import List, TypedDict
+
+class PromptData(TypedDict):
+    prompt: str
+    chain_of_thought: str 
+    final_answer: str
+
 
 class AbstractPreValidator:
     @abstractmethod
-    def validate_data(self, data) -> bool:
+    def validate_data(self, data: List[PromptData]) -> bool:
         raise NotImplementedError("Subclasses must implement this method")
     
 

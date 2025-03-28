@@ -1,7 +1,7 @@
 import sys
 from typing import Counter, List, TypedDict
 
-from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleModel
+from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleModel, PromptData
 from models import PytorchModelHF
 from scorers import SemanticScorer, SimpleOverlapScorer 
 import logging
@@ -10,11 +10,6 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
-
-class PromptData(TypedDict):
-    prompt: str
-    chain_of_thought: str 
-    final_answer: str
 
 
 class Validator:
