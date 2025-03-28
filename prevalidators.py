@@ -3,7 +3,7 @@ import re
 from typing import Counter, List, Set
 import numpy as np
 from sentence_transformers import SentenceTransformer, util
-from abstract import AbstractPreValidator
+from abstract import AbstractPreValidator, PromptData
 
 class DuplicatePromptValidator(AbstractPreValidator):
     def validate_data(self, data: List[dict]) -> bool:
@@ -164,9 +164,14 @@ class FactualConsistencyValidator(AbstractPreValidator):
         }
         
         # TODO: Generate embeddings for knowledge base statements
-        self.knowledge_embeddings = {}
+        self.knowledge_embeddings = dict()
 
-    def validate_data(self, data: List[dict]) -> bool:
+        for fact, statement in self.knowledge_base.items():
+            fact_embedding = self.model.encode(fact, convert_to_tensor=True)
+            statement_embedding = self.model.encode(statement, convert_to_tensor=True)
+            self.knowledge_embeddings[fact_embedding] = (statement_embedding, statement)
+
+    def validate_data(self, data: List[PromptData]) -> bool:
         """
         TODO: Implement this
         Validate that the chain-of-thought reasoning is factually consistent. Feel free to use the knowledge base, 
@@ -178,4 +183,31 @@ class FactualConsistencyValidator(AbstractPreValidator):
         Returns:
             True if all data is factually consistent, False otherwise
         """
-        pass
+        for item in data:
+            prompt = item['prompt']
+            cot = item['chain_of_thought']
+            prompt_embedding = self.model.encode(prompt, convert_to_tensor=True)
+            max_similarity = None
+            max_key = None
+
+            for key in self.knowledge_embeddings:
+                cos_similarity = float(util.pytorch_cos_sim(prompt_embedding, key).item())
+                if max_similarity is None:
+                    max_similarity = cos_similarity
+                    max_key = key
+                elif max_similarity < cos_similarity:
+                    max_similarity = cos_similarity
+                    max_key = key 
+
+            if max_similarity < self.confidence_threshold:
+                continue
+            
+            (data_embedding, knowledge_area) = self.knowledge_embeddings[max_key]
+
+            cot_embedding = self.model.encode(cot, convert_to_tensor=True)
+            data_similarity = float(util.pytorch_cos_sim(data_embedding, cot_embedding).item())
+
+            if data_similarity < self.confidence_threshold:
+                return False
+        return True
+            

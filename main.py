@@ -3,7 +3,7 @@ from typing import List
 
 from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleModel, PromptData
 from models import PytorchModelHF
-from prevalidators import DuplicatePromptValidator, TrainOnTestValidator, ReasoningQualityValidator, DataDiversityValidator
+from prevalidators import DuplicatePromptValidator, TrainOnTestValidator, ReasoningQualityValidator, DataDiversityValidator, FactualConsistencyValidator
 from scorers import SemanticScorer, BleuScorer, RougeScorer
 import logging
 
@@ -128,6 +128,7 @@ if __name__ == "__main__":
         TrainOnTestValidator(test_set),
         ReasoningQualityValidator(),
         DataDiversityValidator(),
+        FactualConsistencyValidator()
     ]
 
     scorers = [
@@ -181,4 +182,4 @@ if __name__ == "__main__":
         }
     ]
 
-    validator.test(model, bad_data2)
+    validator.test(model, good_data)
