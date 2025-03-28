@@ -57,3 +57,11 @@ To ensure quality reasoning, I use a ReasoningQualityValidator that enforces a m
 By no means are these current implementations effective. To improve, I could use more advanced, AI-powered models to help do better checks, additionally, as provided in the datacomp subnet, various methods could be further implemented to improve the pre-validation. E.g. Tulu3, huggingface commit checks, limit dataset size, etc...
 
 There is plenty of room for improvement in the pre-validation and scoring methodologies.
+
+## Scoring
+
+To evaluate model responses accurately, I use multiple scoring methods that assess both semantic correctness and textual similarity. Currently, my scoring system includes semantic similarity (cosine similarity using SBERT), ROUGE-L for longest matching subsequences, and BLEU for n-gram precision.
+
+Semantic similarity ensures that even if the model rephrases an answer, it can still receive a fair score. ROUGE-L is useful for structured responses where word overlap matters, and BLEU works well for direct answers with precise wording.
+
+To improve reliability, I could also normalize text by removing formatting artifacts, LaTeX expressions, and unnecessary punctuation to prevent mismatches. Another area of improvement is adaptive scoring, where certain questions (e.g., fact-based vs. reasoning-based) get evaluated with different weights on different metrics.
