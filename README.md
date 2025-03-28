@@ -65,3 +65,7 @@ To evaluate model responses accurately, I use multiple scoring methods that asse
 Semantic similarity ensures that even if the model rephrases an answer, it can still receive a fair score. ROUGE-L is useful for structured responses where word overlap matters, and BLEU works well for direct answers with precise wording.
 
 To improve reliability, I could also normalize text by removing formatting artifacts, LaTeX expressions, and unnecessary punctuation to prevent mismatches. Another area of improvement is adaptive scoring, where certain questions (e.g., fact-based vs. reasoning-based) get evaluated with different weights on different metrics.
+
+# Note
+
+Cuda should definitely be used in practice, I have an AMD gpu and was unable to test CUDA capabilities locally.
