@@ -1,7 +1,7 @@
 import sys
 from typing import List, TypedDict
 
-from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleTokenizer, AbstractCrucibleModel 
+from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleModel 
 
 class PromptData(TypedDict):
     task: str
@@ -15,24 +15,22 @@ class Validator:
         self.scorers = scorers
 
 
-    def forward_pass(self, model, tokenizer, data: List[PromptData]):
-        tokenized_outputs = []
-        inputs = [tokenizer.encode_batch(item['prompt']) for item in data]
-        for tokenized_input in inputs: 
-            output = model.predict(tokenized_input)
-            tokenized_outputs.append(output[0])
-        
-        decoded_outputs = tokenizer.decode_batch(tokenized_outputs)
-        return decoded_outputs
+    def forward_pass(self, model, data: List[PromptData]):
+        outputs = []
+        inputs = [item['prompt'] for item in data]
+        for input in inputs: 
+            output = model.predict(input)
+            outputs.append(output)
+
+        return outputs
     
     def prompt_combine(self, prompt: PromptData):
         return f"{prompt['task']}\nReasoning: {prompt['chain_of_thought']}\nAnswer:  {prompt['final_answer']}"  
 
     
-    def fine_tune(self, model: AbstractCrucibleModel, tokenizer: AbstractCrucibleTokenizer, data: List[PromptData]):
-        texts = [item['chain_of_thought'] + "\n\nAnswer" for item in data]
-        inputs = tokenizer.encode_batch(texts)
-        model.fine_tune(inputs)
+    def fine_tune(self, model: AbstractCrucibleModel, data: List[PromptData]):
+        texts = [self.prompt_combine(item) for item in data]
+        model.fine_tune(texts)
 
 
     def pre_validate(self, data: List[PromptData]):
@@ -42,11 +40,11 @@ class Validator:
                 return False
         return True
 
-    def validate_and_score(self, model: AbstractCrucibleModel, tokenizer: AbstractCrucibleTokenizer, data: List[PromptData], tune=False):
+    def validate_and_score(self, model: AbstractCrucibleModel, data: List[PromptData], tune=False) -> float:
         if tune:
-            self.fine_tune(model, tokenizer, data)
+            self.fine_tune(model, data)
 
-        output = self.forward_pass(model, tokenizer, data)
+        output = self.forward_pass(model, data)
 
 
         similarities = []
@@ -64,13 +62,13 @@ class Validator:
 
         return sum(similarities) / len(similarities) 
     
-    def test(self, model: AbstractCrucibleModel, tokenizer: AbstractCrucibleTokenizer, data: List[PromptData]):
+    def test(self, model: AbstractCrucibleModel, data: List[PromptData]) -> float:
         if not self.pre_validate(data):
             raise ValueError("Data is not valid")
 
-        original_score = self.validate_and_score(model, tokenizer, data)
+        original_score = self.validate_and_score(model, data)
 
-        trained_score = self.validate_and_score(model, tokenizer, data, tune=True)
+        trained_score = self.validate_and_score(model, data, tune=True)
 
         print(f"Original score: {original_score}")
 
