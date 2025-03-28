@@ -1,10 +1,12 @@
 import sys
 from typing import List, TypedDict
 
-from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleModel 
+from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleModel
+from models import PytorchModelHF
+from scorers import SimpleOverlapScorer 
 
 class PromptData(TypedDict):
-    task: str
+    prompt: str
     chain_of_thought: str 
     final_answer: str
 
@@ -25,7 +27,7 @@ class Validator:
         return outputs
     
     def prompt_combine(self, prompt: PromptData):
-        return f"{prompt['task']}\nReasoning: {prompt['chain_of_thought']}\nAnswer:  {prompt['final_answer']}"  
+        return f"{prompt['prompt']}\nReasoning: {prompt['chain_of_thought']}\nAnswer:  {prompt['final_answer']}"  
 
     
     def fine_tune(self, model: AbstractCrucibleModel, data: List[PromptData]):
@@ -76,3 +78,24 @@ class Validator:
 
         return trained_score
         
+
+
+if __name__ == "__main__":
+    validator = Validator([], [SimpleOverlapScorer()])
+
+    model = PytorchModelHF("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
+
+    data = [
+        {
+            "prompt": "Explain why the sky is blue.",
+            "chain_of_thought": "The sky is blue because of Rayleigh scattering.",
+            "final_answer": "The sky is blue because of Rayleigh scattering."
+        },
+        {
+            "prompt": "What is the capital of France?",
+            "chain_of_thought": "The capital of France is Paris.",
+            "final_answer": "The capital of France is Paris."
+        }
+    ]
+
+    validator.test(model, data)
