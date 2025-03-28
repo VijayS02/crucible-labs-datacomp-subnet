@@ -30,6 +30,7 @@ class TrainOnTestValidator(AbstractPreValidator):
                 item["final_answer"]  # Check similarity against final answer
             ]
 
+            # TODO: Can be improved for checking test-in-train between different datapoints.
             for submission_text in submission_texts:
                 for test_entry in self.test_set:
                     similarity = util.pytorch_cos_sim(

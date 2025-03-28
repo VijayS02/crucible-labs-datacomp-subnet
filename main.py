@@ -56,7 +56,7 @@ class Validator:
         """
         for pre_validator in self.pre_validators:
             if not pre_validator.validate_data(data):
-                print(f"Data is not valid for {pre_validator.__class__.__name__}", file=sys.stderr)
+                logging.error(f"Data is not valid for {pre_validator.__class__.__name__}")
                 return False
         return True
 
@@ -155,6 +155,19 @@ if __name__ == "__main__":
         }
     ]
 
+    bad_data2 = [
+        {
+            "prompt": "Why does the sky appear blue?",
+            "chain_of_thought": "Light from the sun interacts with molecules in Earth's atmosphere, and shorter wavelengths, like blue, scatter more than longer ones.",
+            "final_answer": "The sky appears blue due to Rayleigh scattering, which causes shorter wavelengths to be scattered more than longer ones."
+        },
+        {
+            "prompt": "What causes the sky to look blue?",
+            "chain_of_thought": "When sunlight enters the atmosphere, shorter wavelengths such as blue scatter in all directions more than longer wavelengths.",
+            "final_answer": "Rayleigh scattering in Earth's atmosphere leads to the sky appearing blue as shorter wavelengths are scattered more efficiently."
+        }
+    ]
+
     good_data = [
         {
             "prompt": "Explain why the sky is blue:",
@@ -168,4 +181,4 @@ if __name__ == "__main__":
         }
     ]
 
-    validator.test(model, good_data)
+    validator.test(model, bad_data2)
