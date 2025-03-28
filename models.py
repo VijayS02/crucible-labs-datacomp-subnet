@@ -19,27 +19,28 @@ class PytorchModelHF(AbstractCrucibleModel):
         return self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
     def fine_tune(self, raw_inputs: List[str], batch_size: int = 2, epochs: int = 1):
-        self.model.train()
-        optimizer = torch.optim.AdamW(self.model.parameters(), lr=1e-5)
+        # self.model.train()
+        # optimizer = torch.optim.AdamW(self.model.parameters(), lr=1e-5)
 
-        inputs = self.tokenizer(raw_inputs, padding=True, truncation=True, return_tensors="pt")
-        dataset = TensorDataset(inputs["input_ids"], inputs["attention_mask"])
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        # inputs = self.tokenizer(raw_inputs, padding=True, truncation=True, return_tensors="pt")
+        # dataset = TensorDataset(inputs["input_ids"], inputs["attention_mask"])
+        # dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-        for epoch in range(epochs):
-            total_loss = 0
-            for batch in dataloader:
-                input_ids, attention_mask = batch
-                optimizer.zero_grad()
+        # for epoch in range(epochs):
+        #     total_loss = 0
+        #     for batch in dataloader:
+        #         input_ids, attention_mask = batch
+        #         optimizer.zero_grad()
 
-                outputs = self.model(input_ids, attention_mask=attention_mask, labels=input_ids)
-                loss = outputs.loss
-                loss.backward()
+        #         outputs = self.model(input_ids, attention_mask=attention_mask, labels=input_ids)
+        #         loss = outputs.loss
+        #         loss.backward()
 
-                optimizer.step()
-                total_loss += loss.item()
+        #         optimizer.step()
+        #         total_loss += loss.item()
 
-            print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss / len(dataloader)}")
+        #     print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss / len(dataloader)}")
+        pass 
 
 if __name__ == "__main__":
     model = PytorchModelHF("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")

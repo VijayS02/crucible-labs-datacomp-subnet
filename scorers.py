@@ -1,5 +1,17 @@
 from abstract import AbstractScorer
+from sentence_transformers import SentenceTransformer, util
 
+class SemanticScorer(AbstractScorer):
+    def __init__(self):
+        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    def score(self, output: str, expected: str) -> float:
+        """
+        Computes semantic similarity between generated and expected outputs.
+        """
+        output_embedding = self.model.encode(output, convert_to_tensor=True)
+        expected_embedding = self.model.encode(expected, convert_to_tensor=True)
+        return float(util.pytorch_cos_sim(output_embedding, expected_embedding).item())
 
 class SimpleOverlapScorer(AbstractScorer):
     def score(self, output: str, expected: str) -> float:

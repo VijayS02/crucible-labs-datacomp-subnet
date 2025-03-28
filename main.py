@@ -1,9 +1,15 @@
 import sys
-from typing import List, TypedDict
+from typing import Counter, List, TypedDict
 
 from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleModel
 from models import PytorchModelHF
-from scorers import SimpleOverlapScorer 
+from scorers import SemanticScorer, SimpleOverlapScorer 
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 class PromptData(TypedDict):
     prompt: str
@@ -44,11 +50,13 @@ class Validator:
 
     def validate_and_score(self, model: AbstractCrucibleModel, data: List[PromptData], tune=False) -> float:
         if tune:
+            logging.info("Fine tuning enabled - running fine tuning")
             self.fine_tune(model, data)
 
+        logging.info("Running forward pass")
         output = self.forward_pass(model, data)
 
-
+        logging.info("Computing scores")
         similarities = []
         expected_results = [item["final_answer"] for item in data ]
 
@@ -57,11 +65,14 @@ class Validator:
             for scorer in self.scorers:
                 sim_score += scorer.score(output, expected)
             avg_sim_score = sim_score / len(self.scorers)
+            logging.debug(f"Similarity score: {avg_sim_score}")
             similarities.append(avg_sim_score)
 
         if len(similarities) == 0:
+            logging.warning("No similarities found")
             return 0
 
+        logging.debug(f"Similarities: {similarities}")
         return sum(similarities) / len(similarities) 
     
     def test(self, model: AbstractCrucibleModel, data: List[PromptData]) -> float:
@@ -81,7 +92,7 @@ class Validator:
 
 
 if __name__ == "__main__":
-    validator = Validator([], [SimpleOverlapScorer()])
+    validator = Validator([], [SemanticScorer()])
 
     model = PytorchModelHF("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
 
