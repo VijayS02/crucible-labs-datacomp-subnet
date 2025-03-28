@@ -3,7 +3,8 @@ from typing import Counter, List, TypedDict
 
 from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleModel, PromptData
 from models import PytorchModelHF
-from scorers import SemanticScorer, SimpleOverlapScorer 
+from prevalidators import DuplicatePromptValidator, TrainOnTestValidator, ReasoningQualityValidator, DataDiversityValidator
+from scorers import SemanticScorer 
 import logging
 
 logging.basicConfig(
@@ -87,11 +88,26 @@ class Validator:
 
 
 if __name__ == "__main__":
-    validator = Validator([], [SemanticScorer()])
+
+    test_set = {
+        "The sky appears blue due to Rayleigh scattering of sunlight.",
+        "Paris is the capital of France."
+    }
+
+    pre_validators = [
+        DuplicatePromptValidator(),
+        TrainOnTestValidator(test_set),
+        ReasoningQualityValidator(),
+        DataDiversityValidator(),
+    ]
+
+    validator = Validator(pre_validators, [SemanticScorer()])
 
     model = PytorchModelHF("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
 
-    data = [
+
+
+    bad_data = [
         {
             "prompt": "Explain why the sky is blue.",
             "chain_of_thought": "The sky is blue because of Rayleigh scattering.",
@@ -104,4 +120,17 @@ if __name__ == "__main__":
         }
     ]
 
-    validator.test(model, data)
+    good_data = [
+        {
+            "prompt": "Explain why the sky is blue:",
+            "chain_of_thought": "Consider Rayleigh scattering and how molecules scatter short-wavelength light.",
+            "final_answer": "The sky appears blue because molecules in the atmosphere scatter shorter wavelengths more strongly."
+        },
+        {
+            "prompt": "What is 2 + 2?",
+            "chain_of_thought": "Straightforward math. 2 + 2 = 4",
+            "final_answer": "4"
+        }
+    ]
+
+    validator.test(model, good_data)
