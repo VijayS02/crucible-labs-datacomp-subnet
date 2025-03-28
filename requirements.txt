@@ -1,3 +1,5 @@
 torch
 transformers
 sentence_transformers
+rouge_score
+nltk

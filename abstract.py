@@ -28,7 +28,7 @@ class AbstractScorer:
 
 class AbstractCrucibleModel:
     @abstractmethod
-    def predict(self, tokenized_input) -> list:
+    def batch_predict(self, inputs) -> list:
         """
         Note: This method should attempt to be as deterministic as possible. Try to prevent randomness
         """

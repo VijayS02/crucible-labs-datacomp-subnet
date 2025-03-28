@@ -4,7 +4,7 @@ from typing import List
 from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleModel, PromptData
 from models import PytorchModelHF
 from prevalidators import DuplicatePromptValidator, TrainOnTestValidator, ReasoningQualityValidator, DataDiversityValidator
-from scorers import SemanticScorer 
+from scorers import SemanticScorer, BleuScorer, RougeScorer
 import logging
 
 logging.basicConfig(
@@ -19,17 +19,19 @@ class Validator:
         self.scorers = scorers
 
 
-    def forward_pass(self, model: AbstractCrucibleModel, data: List[PromptData]):
+    def forward_pass(self, model: AbstractCrucibleModel, data: List[PromptData], batch_size: int = 2):
         """
         Runs forward passes on the model and returns the outputs.
 
         Note: This method should try to be as deterministic as possible. 
         """
         outputs = []
-        inputs = [item['prompt'] for item in data]
-        for input in inputs: 
-            output = model.predict(input)
-            outputs.append(output)
+        prompts = [f"{item['prompt']}\nReasoning:{item['chain_of_thought']}\nAnswer:" for item in data]
+
+        for i in range(0, len(prompts), batch_size):
+            batch = prompts[i : i + batch_size]
+            batch_outputs = model.batch_predict(batch) 
+            outputs.extend(batch_outputs)
 
         return outputs
     
@@ -69,6 +71,8 @@ class Validator:
         logging.info("Running forward pass")
         output = self.forward_pass(model, data)
 
+        logging.debug(f"Output: {output}")
+
         logging.info("Computing scores")
         similarities = []
         expected_results = [item["final_answer"] for item in data ]
@@ -77,6 +81,7 @@ class Validator:
             sim_score = 0
             for scorer in self.scorers:
                 sim_score += scorer.score(output, expected)
+                logging.debug(f"Score from {scorer.__class__.__name__}: {scorer.score(output, expected)}")
             avg_sim_score = sim_score / len(self.scorers)
             logging.debug(f"Similarity score: {avg_sim_score}")
             similarities.append(avg_sim_score)
@@ -125,9 +130,15 @@ if __name__ == "__main__":
         DataDiversityValidator(),
     ]
 
-    validator = Validator(pre_validators, [SemanticScorer()])
+    scorers = [
+        RougeScorer(),
+        SemanticScorer(),
+        BleuScorer()
+    ]
 
-    model = PytorchModelHF("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
+    validator = Validator(pre_validators, scorers)
+
+    model = PytorchModelHF()
 
 
 

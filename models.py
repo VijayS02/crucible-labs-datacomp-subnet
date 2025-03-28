@@ -8,14 +8,20 @@ class PytorchModelHF(AbstractCrucibleModel):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16)
 
-    def predict(self, raw_input: str) -> str:
+    def batch_predict(self, raw_input: List[str]) -> List[str]:
         self.model.eval()
         inputs = self.tokenizer(raw_input, return_tensors="pt", padding=True, truncation=True)
 
         with torch.no_grad():
             output_ids = self.model.generate(**inputs, max_length=100)
         
-        return self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
+        outputs = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+        cleaned_outputs = [
+            output[len(prompt):].strip() if output.startswith(prompt) else output
+            for prompt, output in zip(raw_input, outputs)
+        ]
+
+        return cleaned_outputs
 
     def fine_tune(self, raw_inputs: List[str], batch_size: int = 2, epochs: int = 1):
         # self.model.train()
@@ -42,8 +48,17 @@ class PytorchModelHF(AbstractCrucibleModel):
         pass 
 
 if __name__ == "__main__":
-    model = PytorchModelHF("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
+    model = PytorchModelHF()
 
-    text = "Explain why the sky is blue."
-    output = model.predict(text)
-    print("Generated Output:", output)
+    texts = [
+        "Explain why the sky is blue.",
+        "How does gravity work?",
+        "What is quantum entanglement?",
+        "What is the theory of relativity?",
+    ]
+
+    outputs = model.batch_predict(texts)
+
+    for i, (prompt, output) in enumerate(zip(texts, outputs)):
+        print(f"Prompt {i+1}: {prompt}")
+        print(f"Generated Output {i+1}: {output}\n")
