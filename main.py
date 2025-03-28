@@ -1,5 +1,5 @@
 import sys
-from typing import Counter, List, TypedDict
+from typing import List
 
 from abstract import AbstractPreValidator, AbstractScorer, AbstractCrucibleModel, PromptData
 from models import PytorchModelHF
@@ -19,7 +19,12 @@ class Validator:
         self.scorers = scorers
 
 
-    def forward_pass(self, model, data: List[PromptData]):
+    def forward_pass(self, model: AbstractCrucibleModel, data: List[PromptData]):
+        """
+        Runs forward passes on the model and returns the outputs.
+
+        Note: This method should try to be as deterministic as possible. 
+        """
         outputs = []
         inputs = [item['prompt'] for item in data]
         for input in inputs: 
@@ -29,15 +34,24 @@ class Validator:
         return outputs
     
     def prompt_combine(self, prompt: PromptData):
+        """
+        For a single prompt, this function will combine the prompt, chain of thought, and final answer into a single string.
+        """
         return f"{prompt['prompt']}\nReasoning: {prompt['chain_of_thought']}\nAnswer:  {prompt['final_answer']}"  
 
     
     def fine_tune(self, model: AbstractCrucibleModel, data: List[PromptData]):
+        """
+        Given the miner's data, this will run promt_combine on each item fine tune the model.
+        """
         texts = [self.prompt_combine(item) for item in data]
         model.fine_tune(texts)
 
 
     def pre_validate(self, data: List[PromptData]):
+        """
+        Given a list of prompt data, this method will run all prevalidators and return True if the data is valid, False otherwise.
+        """
         for pre_validator in self.pre_validators:
             if not pre_validator.validate_data(data):
                 print(f"Data is not valid for {pre_validator.__class__.__name__}", file=sys.stderr)
@@ -45,6 +59,9 @@ class Validator:
         return True
 
     def validate_and_score(self, model: AbstractCrucibleModel, data: List[PromptData], tune=False) -> float:
+        """
+        As described in the specification, this will fine tune if necessary, run a forward pass, and compute similarity scores. 
+        """
         if tune:
             logging.info("Fine tuning enabled - running fine tuning")
             self.fine_tune(model, data)
@@ -72,6 +89,13 @@ class Validator:
         return sum(similarities) / len(similarities) 
     
     def test(self, model: AbstractCrucibleModel, data: List[PromptData]) -> float:
+        """
+        Given a model and a list of prompt data, this method will run a single test/validation run. 
+
+        Note: In order to counteract randomness, the test function can run multiple experiments and return an average ratio. 
+
+        :return: The ratio of the trained score to the original score.
+        """
         if not self.pre_validate(data):
             raise ValueError("Data is not valid")
 
@@ -83,7 +107,7 @@ class Validator:
 
         print(f"Trained score: {trained_score}")
 
-        return trained_score
+        return trained_score/original_score
         
 
 

@@ -2,7 +2,6 @@ from typing import List
 from abstract import AbstractCrucibleModel
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from torch.utils.data import DataLoader, TensorDataset
 
 class PytorchModelHF(AbstractCrucibleModel):
     def __init__(self, model_name: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"):

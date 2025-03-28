@@ -24,15 +24,22 @@ class TrainOnTestValidator(AbstractPreValidator):
 
     def validate_data(self, data: List[dict]) -> bool:
         for item in data:
-            for test_answer in self.test_set:
-                similarity = util.pytorch_cos_sim(
-                    self.similarity_model.encode(item["final_answer"], convert_to_tensor=True),
-                    self.similarity_model.encode(test_answer, convert_to_tensor=True)
-                ).item()
+            submission_texts = [
+                item["prompt"],  # Check similarity against prompt
+                item["chain_of_thought"],  # Check similarity against reasoning
+                item["final_answer"]  # Check similarity against final answer
+            ]
 
-                if similarity > self.similarity_threshold:
-                    logging.warning(f"Submission too similar to test data: {item['final_answer']} (Sim: {similarity:.2f})")
-                    return False
+            for submission_text in submission_texts:
+                for test_entry in self.test_set:
+                    similarity = util.pytorch_cos_sim(
+                        self.similarity_model.encode(submission_text, convert_to_tensor=True),
+                        self.similarity_model.encode(test_entry, convert_to_tensor=True)
+                    ).item()
+
+                    if similarity > self.similarity_threshold:
+                        logging.warning(f"Submission too similar to test data: {submission_text} (Sim: {similarity:.2f})")
+                        return False
         return True
 
 
